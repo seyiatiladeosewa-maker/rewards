@@ -1,52 +1,49 @@
+import os
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-# Replace with your actual token from BotFather
-TOKEN = "YOUR_BOT_TOKEN_HERE"
-
-# Simple in-memory storage (resets on restart; fine for a demo bot)
-user_balances = {}
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in user_balances:
-        user_balances[user_id] = 0
-    
-    keyboard = [[InlineKeyboardButton("Claim Daily Bonus (+10)", callback_data='claim')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    text = (
-        f"Welcome to Rewards!\n\n"
-        f"Your current balance: {user_balances[user_id]} points.\n"
-        f"Click below to claim your daily bonus."
-    )
-    await update.message.reply_text(text, reply_markup=reply_markup)
-
-async def claim_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    # Simple logic: Add 10 points every time (In production, add a 24h timer)
-    user_balances[user_id] = user_balances.get(user_id, 0) + 10
-    
-    await query.edit_message_text(
-        text=f"Bonus claimed! Your new balance is {user_balances[user_id]} points.\n"
-             f"(This is a demo. No real rewards are issued.)"
+    # A simple menu compliant with Telegram Ads requirements (no external links)
+    await update.message.reply_text(
+        "⚽ **Sports Score Bot**\n\n"
+        "Use the commands below to check scores:\n"
+        "/score - Get a sample live score update\n"
+        "/help - Show this message\n\n"
+        "Note: This bot provides simulated data for demonstration and does not link to gambling or third-party sites.",
+        parse_mode='Markdown'
     )
 
-def main():
-    app = Application.builder().token(TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(claim_bonus, pattern='claim'))
-    
-    # For Railway deployment, use polling (simple) or webhook (better for scale)
-    app.run_polling()
+async def score(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Simulated simple function. In a real scenario, you would fetch from an API here.
+    # Keeping it simple and self-contained ensures the bot always responds (Ads requirement).
+    await update.message.reply_text(
+        "🏀 **NBA (Sample)**\n"
+        "Lakers 102 - 98 Celtics (Q4 - 02:15)\n\n"
+        "⚾ **MLB (Sample)**\n"
+        "Yankees 3 - 1 Red Sox (Top 7th)\n\n"
+        "⚽ **EPL (Sample)**\n"
+        "Arsenal 2 - 2 Liverpool (FT)\n\n"
+        "_Data is simulated for demonstration._"
+    )
 
 if __name__ == '__main__':
-    main()
+    # Railway uses the PORT environment variable, but for polling, we just need the token.
+    TOKEN = os.environ.get("BOT_TOKEN")
+    if not TOKEN:
+        raise ValueError("No BOT_TOKEN found in environment variables.")
+        
+    application = ApplicationBuilder().token(TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", start))
+    application.add_handler(CommandHandler("score", score))
+
+    # Run the bot (Polling mode works well on Railway for simple bots)
+    application.run_polling()
